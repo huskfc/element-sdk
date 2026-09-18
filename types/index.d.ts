@@ -26,7 +26,7 @@ declare module '@defai/element-types' {
     category: ElementCategory;
     tags: string[];
     icon: string;
-    screenshots: string[];
+    screenshots?: string[];
     minSize: ElementSize;
     maxSize: ElementSize;
     defaultSize: ElementSize;
