@@ -15,6 +15,20 @@ export class ElementValidator {
    * Validate a element manifest
    */
   static validateManifest(manifest: ElementManifest): ElementValidationResult {
+    // Reject non-object inputs (null, undefined, primitives, arrays) upfront
+    // with a stable INVALID_MANIFEST error instead of throwing or misclassifying
+    if (manifest === null || manifest === undefined ||
+        typeof manifest !== 'object' || Array.isArray(manifest)) {
+      return {
+        valid: false,
+        errors: [{
+          code: 'INVALID_MANIFEST',
+          message: 'Element manifest must be a non-null object'
+        }],
+        warnings: []
+      };
+    }
+
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
