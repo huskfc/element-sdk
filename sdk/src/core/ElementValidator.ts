@@ -143,21 +143,39 @@ export class ElementValidator {
         });
       }
 
-      // Validate resource limits
-      if (manifest.permissions.maxMemory && manifest.permissions.maxMemory > 100) {
-        warnings.push({
-          code: 'HIGH_MEMORY_LIMIT',
-          message: 'Memory limit exceeds recommended 100MB',
-          field: 'permissions.maxMemory'
-        });
+      // Validate resource limits - reject non-positive, non-finite values
+      if (manifest.permissions.maxMemory !== undefined) {
+        const mem = manifest.permissions.maxMemory;
+        if (typeof mem !== 'number' || !Number.isFinite(mem) || mem <= 0) {
+          errors.push({
+            code: 'INVALID_MEMORY_LIMIT',
+            message: 'maxMemory must be a positive finite number',
+            field: 'permissions.maxMemory'
+          });
+        } else if (mem > 100) {
+          warnings.push({
+            code: 'HIGH_MEMORY_LIMIT',
+            message: 'Memory limit exceeds recommended 100MB',
+            field: 'permissions.maxMemory'
+          });
+        }
       }
 
-      if (manifest.permissions.maxCpu && manifest.permissions.maxCpu > 50) {
-        warnings.push({
-          code: 'HIGH_CPU_LIMIT',
-          message: 'CPU limit exceeds recommended 50%',
-          field: 'permissions.maxCpu'
-        });
+      if (manifest.permissions.maxCpu !== undefined) {
+        const cpu = manifest.permissions.maxCpu;
+        if (typeof cpu !== 'number' || !Number.isFinite(cpu) || cpu <= 0) {
+          errors.push({
+            code: 'INVALID_CPU_LIMIT',
+            message: 'maxCpu must be a positive finite number',
+            field: 'permissions.maxCpu'
+          });
+        } else if (cpu > 50) {
+          warnings.push({
+            code: 'HIGH_CPU_LIMIT',
+            message: 'CPU limit exceeds recommended 50%',
+            field: 'permissions.maxCpu'
+          });
+        }
       }
     }
 
