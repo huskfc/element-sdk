@@ -13,18 +13,14 @@ npm install @defai/element-react @defai/element-sdk react
 ```tsx
 import React from 'react';
 import { 
-  ElementProvider, 
-  useElementContext, 
-  useElementAPI,
-  useElementState 
+  useElementState,
+  useElementEvents,
+  useElementSize,
+  useElementTheme
 } from '@defai/element-react';
 
 function MyElementComponent() {
-  const context = useElementContext();
-  const api = useElementAPI();
-  const [state, setState] = useElementState({
-    counter: 0
-  });
+  const [state, setState] = useElementState({ counter: 0 });
   
   const handleIncrement = () => {
     setState({ counter: state.counter + 1 });
@@ -34,52 +30,12 @@ function MyElementComponent() {
     <div>
       <h1>Count: {state.counter}</h1>
       <button onClick={handleIncrement}>Increment</button>
-      <p>Element ID: {context.elementId}</p>
     </div>
   );
-}
-
-// In your element class
-export class MyElement extends DefaiElement {
-  async onMount(context: ElementContext): Promise<void> {
-    const root = document.getElementById('element-root');
-    ReactDOM.render(
-      <ElementProvider context={context}>
-        <MyElementComponent />
-      </ElementProvider>,
-      root
-    );
-  }
 }
 ```
 
 ## Hooks
-
-### `useElementContext()`
-
-Access the full element context.
-
-```tsx
-const context = useElementContext();
-console.log(context.elementId, context.userTier, context.theme);
-```
-
-### `useElementAPI()`
-
-Access element APIs directly.
-
-```tsx
-const api = useElementAPI();
-
-// Use storage
-await api.storage.set('key', 'value');
-const value = await api.storage.get('key');
-
-// Check wallet
-if (api.wallet.isConnected()) {
-  const balance = await api.wallet.getBalance();
-}
-```
 
 ### `useElementState<T>(initialState)`
 
@@ -126,18 +82,18 @@ useEffect(() => {
 Responsive design based on element size.
 
 ```tsx
-const { width, height, isCompact } = useElementSize();
+const { width, height } = useElementSize();
 
 return (
-  <div className={isCompact ? 'compact-view' : 'full-view'}>
-    {isCompact ? <CompactLayout /> : <FullLayout />}
+  <div style={{ width, height }}>
+    {width < 500 ? <CompactLayout /> : <FullLayout />}
   </div>
 );
 ```
 
 ### `useElementTheme()`
 
-Access and respond to theme changes.
+Access and respond to theme changes with legacy browser support.
 
 ```tsx
 const theme = useElementTheme();
@@ -149,139 +105,7 @@ return (
 );
 ```
 
-### `useElementStorage<T>(key, defaultValue)`
-
-Persistent storage with React state.
-
-```tsx
-const [settings, saveSettings, clearSettings] = useElementStorage('settings', {
-  notifications: true,
-  autoRefresh: false
-});
-
-const toggleNotifications = async () => {
-  await saveSettings({
-    ...settings,
-    notifications: !settings.notifications
-  });
-};
-```
-
-### `useElementWallet()`
-
-Wallet connection and balance tracking.
-
-```tsx
-const { connected, address, balance } = useElementWallet();
-
-if (!connected) {
-  return <div>Please connect your wallet</div>;
-}
-
-return (
-  <div>
-    <p>Address: {address}</p>
-    <p>Balance: {balance} SOL</p>
-  </div>
-);
-```
-
-### `useElementPrices(symbols)`
-
-Real-time price subscriptions.
-
-```tsx
-const { prices, loading } = useElementPrices(['SOL', 'BTC', 'ETH']);
-
-if (loading) return <div>Loading prices...</div>;
-
-return (
-  <div>
-    {Object.entries(prices).map(([symbol, price]) => (
-      <div key={symbol}>{symbol}: ${price}</div>
-    ))}
-  </div>
-);
-```
-
-## Components
-
-### `<ElementProvider>`
-
-Provides element context to child components.
-
-```tsx
-<ElementProvider context={elementContext}>
-  <App />
-</ElementProvider>
-```
-
-### `<ElementErrorBoundary>`
-
-Catch and display element errors gracefully.
-
-```tsx
-<ElementErrorBoundary fallback={<ErrorFallback />}>
-  <YourElement />
-</ElementErrorBoundary>
-```
-
-### `<ElementLoader>`
-
-Loading state component.
-
-```tsx
-if (isLoading) {
-  return <ElementLoader message="Loading data..." />;
-}
-```
-
-### `<ElementPermissionCheck>`
-
-Conditionally render based on permissions.
-
-```tsx
-<ElementPermissionCheck permission="wallet" fallback={<NoWalletAccess />}>
-  <WalletFeatures />
-</ElementPermissionCheck>
-```
-
-## Advanced Usage
-
-### Custom Hooks
-
-Create custom hooks for your element logic:
-
-```tsx
-function useTokenPair(token1: string, token2: string) {
-  const api = useElementAPI();
-  const [data, setData] = useState(null);
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      const [price1, price2] = await Promise.all([
-        api.prices.get(token1),
-        api.prices.get(token2)
-      ]);
-      
-      setData({
-        [token1]: price1,
-        [token2]: price2,
-        ratio: price1 / price2
-      });
-    };
-    
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    
-    return () => clearInterval(interval);
-  }, [token1, token2]);
-  
-  return data;
-}
-```
-
-### TypeScript Support
+## TypeScript Support
 
 Full TypeScript support with type inference:
 
@@ -305,15 +129,21 @@ const [state, setState] = useElementState<MyElementState>({
 });
 ```
 
+## Re-exported Types
+
+The following types are re-exported from `@defai/element-sdk`:
+
+- `ElementContext`
+- `ElementState`
+- `ElementAPI`
+- `ElementMetadata`
+- `ElementPermissions`
+
 ## Best Practices
 
-1. **Always wrap your app** with `ElementProvider`
-2. **Use error boundaries** to handle component errors
-3. **Clean up subscriptions** in useEffect returns
-4. **Memoize expensive computations** with useMemo
-5. **Handle loading states** for async operations
-6. **Check permissions** before using restricted APIs
-7. **Optimize re-renders** with React.memo
+1. **Clean up subscriptions** in useEffect returns
+2. **Memoize expensive computations** with useMemo
+6. **Optimize re-renders** with React.memo
 
 ## License
 
