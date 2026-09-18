@@ -10,9 +10,10 @@ let cliPath;
 if (isDev) {
   // Development: run TypeScript directly
   cliPath = path.resolve(__dirname, '../src/index.ts');
+  // Preserve caller's working directory
   const child = spawn('npx', ['ts-node', cliPath, ...process.argv.slice(2)], {
     stdio: 'inherit',
-    cwd: path.resolve(__dirname, '..')
+    cwd: process.cwd()
   });
   
   child.on('exit', (code) => {
@@ -22,4 +23,4 @@ if (isDev) {
   // Production: run compiled JavaScript
   cliPath = path.resolve(__dirname, '../lib/index.js');
   require(cliPath);
-} 
+}
