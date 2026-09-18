@@ -42,7 +42,10 @@ export class ElementValidator {
       // Check required metadata fields
       const requiredFields = ['id', 'name', 'version', 'author', 'description', 'category'];
       requiredFields.forEach(field => {
-        if (!(field in manifest.metadata)) {
+        const value = manifest.metadata[field as keyof typeof manifest.metadata];
+        if (!(field in manifest.metadata) || 
+            typeof value !== 'string' || 
+            value.trim() === '') {
           errors.push({
             code: 'MISSING_METADATA_FIELD',
             message: `Metadata must include ${field}`,
@@ -51,8 +54,9 @@ export class ElementValidator {
         }
       });
 
-      // Validate ID format
-      if (manifest.metadata.id && !/^[a-z0-9-]+$/.test(manifest.metadata.id)) {
+      // Validate ID format (only if id is present and non-blank string)
+      const idValue = manifest.metadata.id;
+      if (typeof idValue === 'string' && idValue.trim() !== '' && !/^[a-z0-9-]+$/.test(idValue)) {
         errors.push({
           code: 'INVALID_ID_FORMAT',
           message: 'Element ID must contain only lowercase letters, numbers, and hyphens',
@@ -60,8 +64,9 @@ export class ElementValidator {
         });
       }
 
-      // Validate version format
-      if (manifest.metadata.version && !/^\d+\.\d+\.\d+$/.test(manifest.metadata.version)) {
+      // Validate version format (only if version is present and non-blank string)
+      const versionValue = manifest.metadata.version;
+      if (typeof versionValue === 'string' && versionValue.trim() !== '' && !/^\d+\.\d+\.\d+$/.test(versionValue)) {
         errors.push({
           code: 'INVALID_VERSION_FORMAT',
           message: 'Version must follow semantic versioning (e.g., 1.0.0)',
