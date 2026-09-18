@@ -38,10 +38,13 @@ export class ElementEventEmitter extends EventEmitter {
    * Get event history
    */
   getHistory(event?: string): Array<{ event: string; data: any; timestamp: number }> {
-    if (event) {
-      return this.eventHistory.filter(e => e.event === event);
+    // Explicit undefined check - empty string is a valid event name
+    if (event !== undefined) {
+      return this.eventHistory
+        .filter(e => e.event === event)
+        .map(e => ({ ...e })); // Return fresh copies to prevent mutation
     }
-    return [...this.eventHistory];
+    return this.eventHistory.map(e => ({ ...e })); // Return fresh copies
   }
 
   /**
@@ -97,4 +100,4 @@ export class ElementEventEmitter extends EventEmitter {
       }
     });
   }
-} 
+}
