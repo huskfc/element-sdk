@@ -86,23 +86,29 @@ export function useElementSize() {
 }
 
 /**
- * Hook for element theme
+ * Hook for element theme with legacy MediaQueryList support
  */
 export function useElementTheme() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
   useEffect(() => {
-    // In production, get theme from element context
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     setTheme(mediaQuery.matches ? 'dark' : 'light');
     
-    const handler = (e: MediaQueryListEvent) => {
-      setTheme(e.matches ? 'dark' : 'light');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      const matches = 'matches' in e ? e.matches : (e as MediaQueryList).matches;
+      setTheme(matches ? 'dark' : 'light');
     };
     
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
+    // Use modern API when available, fall back to legacy
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handler as EventListener);
+      return () => mediaQuery.removeEventListener('change', handler as EventListener);
+    } else if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(handler);
+      return () => mediaQuery.removeListener(handler);
+    }
   }, []);
   
   return theme;
-} 
+}
