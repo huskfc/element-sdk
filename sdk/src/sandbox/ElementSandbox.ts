@@ -29,7 +29,7 @@ export class ElementSandbox {
       this.iframe.sandbox.add('allow-clipboard-write');
     }
 
-    // Set CSP
+    // Also set CSP attribute on iframe (for non-srcdoc loads)
     this.iframe.setAttribute('csp', this.getCSP());
     
     // Style the iframe
@@ -51,13 +51,20 @@ export class ElementSandbox {
       throw new Error('Sandbox not created');
     }
 
+    const csp = this.getCSP();
+    
+    // Neutralize breakout sequences in code and styles
+    const safeCode = this.neutralizeBreakouts(code);
+    const safeStyles = styles ? this.neutralizeBreakouts(styles) : '';
+
     const html = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
-          ${styles ? `<style>${styles}</style>` : ''}
+          <meta http-equiv="Content-Security-Policy" content="${csp}">
+          ${safeStyles ? `<style>${safeStyles}</style>` : ''}
           <script>
             // Element API proxy
             window.elementAPI = ${this.createAPIProxy()};
@@ -83,12 +90,21 @@ export class ElementSandbox {
         </head>
         <body>
           <div id="element-root"></div>
-          <script>${code}</script>
+          <script>${safeCode}</script>
         </body>
       </html>
     `;
 
     this.iframe.srcdoc = html;
+  }
+
+  /**
+   * Neutralize </script> and </style> breakout sequences
+   */
+  private neutralizeBreakouts(input: string): string {
+    return input
+      .replace(/<\/script>/gi, '<\\/script>')
+      .replace(/<\/style>/gi, '<\\/style>');
   }
 
   /**
@@ -196,4 +212,4 @@ export class ElementSandbox {
 
     return `{${Object.entries(proxy).map(([k, v]) => `${k}: ${v}`).join(',')}}`;
   }
-} 
+}
