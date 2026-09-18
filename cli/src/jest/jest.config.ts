@@ -1,4 +1,4 @@
-module.exports = {
+const config = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   rootDir: process.cwd(),
@@ -49,3 +49,5 @@ module.exports = {
   // Transform ignore patterns - don't ignore anything
   transformIgnorePatterns: [],
 };
+
+module.exports = config;
