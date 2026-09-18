@@ -197,6 +197,14 @@ export class ElementValidator {
   }
 
   /**
+   * Get the UTF-8 byte length of a string
+   */
+  private static getUTF8ByteLength(str: string): number {
+    // Use TextEncoder for UTF-8 byte length (works in modern browsers and Node.js)
+    return new TextEncoder().encode(str).length;
+  }
+
+  /**
    * Validate element code
    */
   static validateCode(code: string): ElementValidationResult {
@@ -237,13 +245,14 @@ export class ElementValidator {
       }
     });
 
-    // Check code size
-    if (code.length > 1000000) {
+    // Check code size using UTF-8 byte length
+    const byteLength = this.getUTF8ByteLength(code);
+    if (byteLength > 1000000) {
       errors.push({
         code: 'CODE_TOO_LARGE',
         message: 'Element code exceeds 1MB limit'
       });
-    } else if (code.length > 500000) {
+    } else if (byteLength > 500000) {
       warnings.push({
         code: 'LARGE_CODE_SIZE',
         message: 'Element code is large and may affect performance'
@@ -272,4 +281,4 @@ export class ElementValidator {
     
     return true;
   }
-} 
+}
