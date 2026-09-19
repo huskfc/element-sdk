@@ -5,6 +5,9 @@
 import { ElementContext, ElementAPI, UserTier } from '../interfaces';
 
 export function createMockContext(overrides?: Partial<ElementContext>): ElementContext {
+  // Create isolated storage for this mock context
+  const storage = new Map<string, any>();
+  
   const mockAPI: ElementAPI = {
     getPortfolio: async () => [
       {
@@ -58,15 +61,13 @@ export function createMockContext(overrides?: Partial<ElementContext>): ElementC
       return prices;
     },
     
-    saveData: async (key, value) => {
-      // Mock implementation - in real tests, this could use localStorage or memory
-      console.log(`Mock saveData: ${key} = ${JSON.stringify(value)}`);
+    saveData: async (key: string, value: any) => {
+      storage.set(key, value);
     },
     
-    loadData: async (key) => {
-      // Mock implementation
-      console.log(`Mock loadData: ${key}`);
-      return null;
+    loadData: async (key: string) => {
+      const value = storage.get(key);
+      return value !== undefined ? value : null;
     },
     
     sendNotification: (options) => {
@@ -103,7 +104,7 @@ export function createMockContext(overrides?: Partial<ElementContext>): ElementC
       };
     }
   };
-
+  
   return {
     api: mockAPI,
     userId: 'mock-user-123',
@@ -113,4 +114,4 @@ export function createMockContext(overrides?: Partial<ElementContext>): ElementC
     containerSize: { width: 400, height: 600 },
     ...overrides
   };
-} 
+}
