@@ -84,10 +84,12 @@ export class ElementEventEmitter extends EventEmitter {
 
   /**
    * Wait for event (promise-based)
+   * Use `timeout != null` to distinguish omitted timeout (undefined) from explicit 0
    */
   waitFor(event: string, timeout?: number): Promise<any> {
     return new Promise((resolve, reject) => {
-      if (timeout) {
+      // Check for explicit timeout (including 0), not just truthy
+      if (timeout != null) {
         this.onceWithTimeout(event, (result) => {
           if (result instanceof Error) {
             reject(result);
