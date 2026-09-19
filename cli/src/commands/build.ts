@@ -42,57 +42,74 @@ export class BuildCommand {
         throw new Error('Failed to create webpack compiler');
       }
       
-      const stats = await new Promise<webpack.Stats>((resolve, reject) => {
-        compiler.run((err: Error | null, stats?: webpack.Stats) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(stats!);
+      let stats: any;
+      
+      try {
+        stats = await new Promise<webpack.Stats>((resolve, reject) => {
+          compiler.run((err: Error | null, stats?: webpack.Stats) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(stats!);
+          });
         });
-      });
 
-      // Handle build results
-      if (stats.hasErrors()) {
-        spinner.fail('Build failed with errors');
+        // Handle build results
+        if (stats.hasErrors()) {
+          spinner.fail('Build failed with errors');
+          console.log();
+          console.log(chalk.red('Build errors:'));
+          console.log(stats.toString({
+            colors: true,
+            errors: true,
+            warnings: false
+          }));
+          throw new Error('Build failed');
+        }
+
+        if (stats.hasWarnings()) {
+          spinner.warn('Build completed with warnings');
+          console.log();
+          console.log(chalk.yellow('Build warnings:'));
+          console.log(stats.toString({
+            colors: true,
+            errors: false,
+            warnings: true
+          }));
+        } else {
+          spinner.succeed('Build completed successfully!');
+        }
+
         console.log();
-        console.log(chalk.red('Build errors:'));
+        console.log(chalk.green('✨ Element built for production:'));
+        console.log();
         console.log(stats.toString({
           colors: true,
-          errors: true,
-          warnings: false
+          modules: false,
+          chunks: false,
+          chunkModules: false,
+          children: false
         }));
-        throw new Error('Build failed');
-      }
-
-      if (stats.hasWarnings()) {
-        spinner.warn('Build completed with warnings');
         console.log();
-        console.log(chalk.yellow('Build warnings:'));
-        console.log(stats.toString({
-          colors: true,
-          errors: false,
-          warnings: true
-        }));
-      } else {
-        spinner.succeed('Build completed successfully!');
-      }
 
-      console.log();
-      console.log(chalk.green('✨ Element built for production:'));
-      console.log();
-      console.log(stats.toString({
-        colors: true,
-        modules: false,
-        chunks: false,
-        chunkModules: false,
-        children: false
-      }));
-      console.log();
+      } finally {
+        // Always close the compiler to release resources
+        try {
+          await new Promise<void>((resolve, reject) => {
+            compiler.close((err?: Error | null) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+        } catch (closeError) {
+          console.warn(chalk.yellow('Warning: Failed to close compiler cleanly:'), closeError);
+        }
+      }
 
     } catch (error) {
       spinner.fail('Build failed');
       throw error;
     }
   }
-} 
+}
