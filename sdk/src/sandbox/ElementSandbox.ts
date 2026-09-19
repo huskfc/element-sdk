@@ -172,7 +172,7 @@ export class ElementSandbox {
   }
 
   /**
-   * Get Content Security Policy - emits exactly one connect-src directive
+   * Get Content Security Policy - selects exactly one connect-src directive
    */
   private getCSP(): string {
     const policies = [
@@ -181,15 +181,15 @@ export class ElementSandbox {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
-      "connect-src 'none'"
     ];
 
     if (this.permissions.network === true) {
-      // Replace the default connect-src 'none' with connect-src *
-      policies[policies.length - 1] = "connect-src *";
+      // Network permission granted - allow all connections
+      return policies.concat("connect-src *").join('; ');
+    } else {
+      // No network permission - block all connections
+      return policies.concat("connect-src 'none'").join('; ');
     }
-
-    return policies.join('; ');
   }
 
   /**
