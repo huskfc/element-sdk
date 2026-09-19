@@ -99,9 +99,21 @@ export class ElementAPIProxy implements ElementAPI {
   on(event: string, handler: (data: any) => void): () => void {
     // Wrap handler to check permissions
     const wrappedHandler = (payload: any) => {
+      // Validate payload before accessing properties
+      if (!payload || typeof payload !== 'object') {
+        // Ignore malformed payloads (null, primitives, etc.)
+        return;
+      }
+      
+      const source = payload.source;
+      if (typeof source !== 'string') {
+        // Ignore payloads without a valid source
+        return;
+      }
+      
       // Check if this element can receive from the source
       const canReceive = this.permissions.canReceiveFrom.includes('*') ||
-                        this.permissions.canReceiveFrom.includes(payload.source);
+                        this.permissions.canReceiveFrom.includes(source);
       
       if (canReceive) {
         handler(payload.data);
@@ -110,4 +122,4 @@ export class ElementAPIProxy implements ElementAPI {
 
     return this.actualAPI.on(event, wrappedHandler);
   }
-} 
+}
