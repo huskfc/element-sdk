@@ -84,36 +84,122 @@ export class ValidateCommand {
 
       const manifest = await fs.readJson(manifestPath);
       
-      // Required fields
-      const requiredFields = ['id', 'name', 'version', 'description', 'category'];
-      for (const field of requiredFields) {
-        if (!manifest[field]) {
+      // Detect manifest format: SDK nested format vs legacy flat format
+      const isSDKFormat = manifest.metadata && manifest.permissions;
+      
+      if (isSDKFormat) {
+        // SDK nested format validation
+        await this.validateSDKManifest(manifest, issues);
+      } else {
+        // Legacy flat format validation
+        await this.validateLegacyManifest(manifest, issues);
+      }
+
+    } catch (error) {
+      issues.push({
+        type: 'error',
+        message: `Failed to parse manifest.json: ${error instanceof Error ? error.message : String(error)}`
+      });
+    }
+  }
+
+  private async validateSDKManifest(manifest: any, issues: Array<{ type: 'error' | 'warning'; message: string }>): Promise<void> {
+    const { metadata, permissions, dependencies, build } = manifest;
+    
+    if (!metadata) {
+      issues.push({ type: 'error', message: 'SDK manifest missing required "metadata" object' });
+      return;
+    }
+    
+    if (!permissions) {
+      issues.push({ type: 'error', message: 'SDK manifest missing required "permissions" object' });
+      return;
+    }
+
+    // Validate required metadata fields
+    const requiredMetadataFields = ['id', 'name', 'version', 'author', 'description', 'category'];
+    for (const field of requiredMetadataFields) {
+      const value = metadata[field];
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        issues.push({
+          type: 'error',
+          message: `metadata missing required field: ${field}`
+        });
+      }
+    }
+
+    // Validate metadata field formats
+    if (metadata.id && typeof metadata.id === 'string' && !/^[a-z0-9-]+$/.test(metadata.id)) {
+      issues.push({ type: 'error', message: 'metadata.id must contain only lowercase letters, numbers, and hyphens' });
+    }
+    
+    if (metadata.version && typeof metadata.version === 'string' && !/^\d+\.\d+\.\d+$/.test(metadata.version)) {
+      issues.push({ type: 'error', message: 'metadata.version must follow semantic versioning (e.g., 1.0.0)' });
+    }
+
+    // Validate permissions
+    const validPermissionKeys = new Set([
+      'network', 'storage', 'notifications', 'clipboard',
+      'canReceiveFrom', 'canSendTo', 'portfolio', 'transactions',
+      'aiChat', 'wallet', 'maxMemory', 'maxCpu'
+    ]);
+    
+    if (permissions) {
+      for (const key of Object.keys(permissions)) {
+        if (!validPermissionKeys.has(key)) {
           issues.push({
-            type: 'error',
-            message: `manifest.json missing required field: ${field}`
+            type: 'warning',
+            message: `Unknown permission: ${key}`
           });
         }
       }
+    }
 
-      // Validate permissions
-      if (manifest.permissions) {
-        const validPermissions = ['wallet', 'network', 'ai', 'storage', 'notifications', 'messaging'];
-        for (const permission of Object.keys(manifest.permissions)) {
-          if (!validPermissions.includes(permission)) {
-            issues.push({
-              type: 'warning',
-              message: `Unknown permission in manifest.json: ${permission}`
-            });
-          }
+    // Validate dependencies if present
+    if (dependencies) {
+      for (const [pkg, version] of Object.entries(dependencies)) {
+        if (typeof version !== 'string') {
+          issues.push({ type: 'error', message: `Invalid version for dependency ${pkg}` });
         }
       }
+    }
 
-         } catch (error) {
-       issues.push({
-         type: 'error',
-         message: `Failed to parse manifest.json: ${error instanceof Error ? error.message : String(error)}`
-       });
-     }
+    // Validate build config if present
+    if (build) {
+      if (!build.entry) {
+        issues.push({ type: 'error', message: 'build configuration missing entry point' });
+      }
+      if (!build.output) {
+        issues.push({ type: 'error', message: 'build configuration missing output' });
+      }
+    }
+
+  }
+
+  private async validateLegacyManifest(manifest: any, issues: Array<{ type: 'error' | 'warning'; message: string }>): Promise<void> {
+    // Required fields for legacy format
+    const requiredFields = ['id', 'name', 'version', 'description', 'category'];
+    for (const field of requiredFields) {
+      if (!manifest[field]) {
+        issues.push({
+          type: 'error',
+          message: `manifest.json missing required field: ${field}`
+        });
+      }
+    }
+
+    // Validate permissions for legacy format
+    if (manifest.permissions) {
+      const validPermissions = ['wallet', 'network', 'ai', 'storage', 'notifications', 'messaging'];
+      for (const permission of Object.keys(manifest.permissions)) {
+        if (!validPermissions.includes(permission)) {
+          issues.push({
+            type: 'warning',
+            message: `Unknown permission in manifest.json: ${permission}`
+          });
+        }
+      }
+    }
   }
 
   private async validatePackageJson(issues: Array<{ type: 'error' | 'warning'; message: string }>): Promise<void> {
@@ -138,12 +224,12 @@ export class ValidateCommand {
         });
       }
 
-         } catch (error) {
-       issues.push({
-         type: 'error',
-         message: `Failed to parse package.json: ${error instanceof Error ? error.message : String(error)}`
-       });
-     }
+    } catch (error) {
+      issues.push({
+        type: 'error',
+        message: `Failed to parse package.json: ${error instanceof Error ? error.message : String(error)}`
+      });
+    }
   }
 
   private async validateEntryPoint(issues: Array<{ type: 'error' | 'warning'; message: string }>): Promise<void> {
@@ -177,4 +263,4 @@ export class ValidateCommand {
       }
     }
   }
-} 
+}
