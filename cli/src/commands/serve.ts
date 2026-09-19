@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
+import fs from 'fs-extra';
 
 export interface ServeOptions {
   port: string;
@@ -18,10 +19,22 @@ export class ServeCommand {
     
     try {
       const port = parseInt(this.options.port, 10);
+      const staticPath = path.resolve(process.cwd(), this.directory);
+      
+      // Verify the directory exists before starting server
+      if (!await fs.pathExists(staticPath)) {
+        throw new Error(`Serve directory does not exist: ${staticPath}`);
+      }
+      
+      // Verify it's a directory (not a file)
+      const stat = await fs.stat(staticPath);
+      if (!stat.isDirectory()) {
+        throw new Error(`Serve path is not a directory: ${staticPath}`);
+      }
+      
       const app = express();
       
       // Serve static files
-      const staticPath = path.resolve(process.cwd(), this.directory);
       app.use(express.static(staticPath));
       
       // Fallback to index.html for SPA routing
@@ -57,4 +70,4 @@ export class ServeCommand {
       throw error;
     }
   }
-} 
+}
