@@ -4,6 +4,26 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { createWebpackConfig } from '../webpack/webpack.config';
 
+/**
+ * Strictly validate a port string
+ * - Must be digits only (no prefixes, suffixes, decimals)
+ * - Must be in range 1-65535
+ */
+export function validatePort(portStr: string): number {
+  // Strict integer check - no prefixes, suffixes, decimals
+  if (!/^\d+$/.test(portStr)) {
+    throw new Error(`Invalid port: "${portStr}". Port must be a positive integer.`);
+  }
+  
+  const port = parseInt(portStr, 10);
+  
+  if (port < 1 || port > 65535) {
+    throw new Error(`Invalid port: ${port}. Port must be in range 1-65535.`);
+  }
+  
+  return port;
+}
+
 export interface DevOptions {
   port: string;
   host: string;
@@ -18,7 +38,8 @@ export class DevCommand {
     const spinner = ora('Starting development server...').start();
     
     try {
-      const port = parseInt(this.options.port, 10);
+      // Validate port before starting
+      const port = validatePort(this.options.port);
       const host = this.options.host;
       
       // Create webpack configuration
@@ -74,4 +95,4 @@ export class DevCommand {
       throw error;
     }
   }
-} 
+}
