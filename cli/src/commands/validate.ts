@@ -60,6 +60,12 @@ export class ValidateCommand {
 
       console.log();
 
+      // In strict mode, treat warnings as errors
+      if (this.options.strict && warnings.length > 0) {
+        console.log(chalk.red('🔒 Strict mode: treating warnings as errors'));
+        throw new Error('Validation failed in strict mode: warnings present');
+      }
+
       if (errors.length > 0) {
         throw new Error('Validation failed');
       }
