@@ -71,28 +71,21 @@ export abstract class DefaiElement extends EventEmitter {
   }
 
   // Inter-element communication
+  // Pass raw data - the API proxy handles the wire envelope
   protected emitToOthers(event: string, data: any): void {
     if (!this.context) {
       throw new Error('Element not mounted');
     }
-    this.context.api.emit(event, {
-      source: this.metadata.id,
-      data
-    });
+    this.context.api.emit(event, data);
   }
 
+  // The API proxy handles permission checks and unwrapping
+  // Just pass the handler directly
   protected onFromOthers(event: string, handler: (data: any) => void): () => void {
     if (!this.context) {
       throw new Error('Element not mounted');
     }
-    return this.context.api.on(event, (payload) => {
-      // Check if this element can receive from the source
-      const canReceive = this.permissions.canReceiveFrom.includes('*') ||
-                        this.permissions.canReceiveFrom.includes(payload.source);
-      if (canReceive) {
-        handler(payload.data);
-      }
-    });
+    return this.context.api.on(event, handler);
   }
 
   // Internal lifecycle management
@@ -140,4 +133,4 @@ export abstract class DefaiElement extends EventEmitter {
   protected get currentContext(): ElementContext | undefined {
     return this.context;
   }
-} 
+}
