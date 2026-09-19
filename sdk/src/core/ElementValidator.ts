@@ -86,6 +86,30 @@ export class ElementValidator {
         }
       }
 
+      // Validate defaultSize against minSize and maxSize bounds
+      if (manifest.metadata.defaultSize) {
+        if (manifest.metadata.minSize) {
+          if (manifest.metadata.defaultSize.width < manifest.metadata.minSize.width ||
+              manifest.metadata.defaultSize.height < manifest.metadata.minSize.height) {
+            errors.push({
+              code: 'DEFAULT_SIZE_BELOW_MIN',
+              message: 'defaultSize cannot be smaller than minSize',
+              field: 'metadata.defaultSize'
+            });
+          }
+        }
+        if (manifest.metadata.maxSize) {
+          if (manifest.metadata.defaultSize.width > manifest.metadata.maxSize.width ||
+              manifest.metadata.defaultSize.height > manifest.metadata.maxSize.height) {
+            errors.push({
+              code: 'DEFAULT_SIZE_ABOVE_MAX',
+              message: 'defaultSize cannot be larger than maxSize',
+              field: 'metadata.defaultSize'
+            });
+          }
+        }
+      }
+
       // Validate price
       if (manifest.metadata.price !== undefined) {
         if (manifest.metadata.price < 0) {
