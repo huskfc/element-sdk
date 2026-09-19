@@ -10,6 +10,8 @@ export class ElementSandbox {
   private permissions: ElementPermissions;
   private elementId: string;
   private messageHandlers: Map<string, Function> = new Map();
+  private messageListener?: (event: MessageEvent) => void;
+  private channelAttached: boolean = false;
 
   constructor(elementId: string, permissions: ElementPermissions) {
     this.elementId = elementId;
@@ -111,11 +113,18 @@ export class ElementSandbox {
    * Destroy the sandbox
    */
   destroy(): void {
+    // Remove the message listener before removing iframe
+    if (this.messageListener && window.removeEventListener) {
+      window.removeEventListener('message', this.messageListener);
+      this.messageListener = undefined;
+    }
+    
     if (this.iframe) {
       this.iframe.remove();
       this.iframe = undefined;
     }
     this.messageHandlers.clear();
+    this.channelAttached = false;
   }
 
   /**
@@ -143,7 +152,11 @@ export class ElementSandbox {
    * Setup message channel for communication
    */
   private setupMessageChannel(): void {
-    window.addEventListener('message', (event) => {
+    // Don't attach if already attached
+    if (this.channelAttached) return;
+    
+    // Create a named listener function for proper removal
+    this.messageListener = (event: MessageEvent) => {
       if (event.source !== this.iframe?.contentWindow) return;
       
       const { type, data } = event.data;
@@ -152,11 +165,14 @@ export class ElementSandbox {
       if (handler) {
         handler(data);
       }
-    });
+    };
+    
+    window.addEventListener('message', this.messageListener);
+    this.channelAttached = true;
   }
 
   /**
-   * Get Content Security Policy
+   * Get Content Security Policy - emits exactly one connect-src directive
    */
   private getCSP(): string {
     const policies = [
@@ -168,8 +184,9 @@ export class ElementSandbox {
       "connect-src 'none'"
     ];
 
-    if (this.permissions.network) {
-      policies.push("connect-src *");
+    if (this.permissions.network === true) {
+      // Replace the default connect-src 'none' with connect-src *
+      policies[policies.length - 1] = "connect-src *";
     }
 
     return policies.join('; ');
