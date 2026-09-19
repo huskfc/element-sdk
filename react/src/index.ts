@@ -59,15 +59,16 @@ export function useElementEvents() {
 }
 
 /**
- * Hook for element size
+ * Hook for element size with ResizeObserver support
  */
 export function useElementSize() {
   const [size, setSize] = useState({ width: 400, height: 600 });
+  const observerRef = useRef<ResizeObserver | null>(null);
   
   useEffect(() => {
+    const container = document.getElementById('element-root');
+    
     const handleResize = () => {
-      // In production, get size from element container
-      const container = document.getElementById('element-root');
       if (container) {
         setSize({
           width: container.clientWidth,
@@ -76,10 +77,27 @@ export function useElementSize() {
       }
     };
     
-    window.addEventListener('resize', handleResize);
+    // Initial size
     handleResize();
     
-    return () => window.removeEventListener('resize', handleResize);
+    // Try to use ResizeObserver for container-only resizes
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      observer = new ResizeObserver(handleResize);
+      observer.observe(container);
+      observerRef.current = observer;
+    }
+    
+    // Fallback: window resize listener
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      if (observer) {
+        observer.disconnect();
+        observerRef.current = null;
+      }
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
   
   return size;
