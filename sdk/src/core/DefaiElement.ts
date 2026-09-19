@@ -93,10 +93,18 @@ export abstract class DefaiElement extends EventEmitter {
     if (this.mounted) {
       throw new Error('Element already mounted');
     }
+    // Set context but not mounted yet - allow onMount to access context
+    const prevContext = this.context;
     this.context = context;
-    this.mounted = true;
     this.emit('lifecycle', { event: 'mount' } as { event: ElementLifecycleEvent });
-    await this.onMount(context);
+    try {
+      await this.onMount(context);
+      this.mounted = true;
+    } catch (err) {
+      // Rollback on failure
+      this.context = prevContext;
+      throw err;
+    }
   }
 
   async _unmount(): Promise<void> {
