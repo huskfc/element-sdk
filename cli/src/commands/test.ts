@@ -14,7 +14,7 @@ export class TestCommand {
     console.log(chalk.blue('🧪 Running element tests...'));
     console.log();
 
-    const args = ['test'];
+    const args: string[] = []; // Removed 'test' positional argument
     
     if (this.options.watch) {
       args.push('--watch');
@@ -48,4 +48,4 @@ export class TestCommand {
       });
     });
   }
-} 
+}
